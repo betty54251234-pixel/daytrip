@@ -246,6 +246,11 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
 .np-name{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--txt);background:var(--card);outline:none;}
 .np-name:focus{border-color:var(--acc);}
 .np-create{width:100%;background:var(--acc);border-radius:12px;padding:12px;color:#fff;font-size:14px;font-weight:800;border:none;cursor:pointer;}
+
+.gap-transport{display:flex;align-items:center;gap:8px;}
+.tp-select{border:1.5px solid var(--border);border-radius:10px;padding:4px 8px;
+  font-size:12px;color:var(--txt);background:var(--bg);cursor:pointer;outline:none;font-family:inherit;}
+.tp-select:focus{border-color:var(--acc);}
 </style>
 </head>
 <body>
@@ -425,6 +430,18 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
 </div>
 
 <script>
+
+const TRANSPORTS=[
+  {id:'subway',label:'지하철',icon:'🚇'},
+  {id:'walk',label:'도보',icon:'🚶'},
+  {id:'taxi',label:'택시',icon:'🚕'},
+  {id:'car',label:'자가용',icon:'🚗'},
+  {id:'bus',label:'버스',icon:'🚌'},
+  {id:'bike',label:'자전거',icon:'🚲'},
+  {id:'plane',label:'비행기',icon:'✈️'},
+  {id:'ship',label:'배',icon:'🚢'},
+  {id:'none',label:'',icon:''},
+];
 const CATEGORIES=[
   {id:'bus',label:'버스',icon:'🚌',color:'#4CAF50'},
   {id:'train',label:'기차',icon:'🚄',color:'#8E24AA'},
@@ -457,7 +474,7 @@ const parseDur=v=>{if(!v)return 0;const s=String(v);if(s.includes(':')){const[h,
 const fmtDur=m=>{const h=Math.floor(m/60),mn=m%60;return`${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;};
 const localDateStr=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${day}`;};
 
-const migrate=t=>({...t,startDate:t.startDate||t.date||'',endDate:t.endDate||t.date||'',
+const migrate=t=>({...t,startDate:t.startDate||t.date||'',endDate:t.endDate||t.date||'',transports:t.transports||{},
   blocks:(t.blocks||[]).map(b=>({...b,dayIdx:b.dayIdx||0})),checklist:t.checklist||[]});
 const tripDays=t=>{
   const days=[];let d=new Date((t.startDate||t.date)+'T00:00:00');
@@ -495,7 +512,14 @@ const sortedTrips=()=>[
 
 function showCal(){document.getElementById('calView').style.display='block';document.getElementById('tlView').style.display='none';renderCal();}
 function showTimeline(trip){selTrip=trip;currentTab='timeline';curDayIdx=0;document.getElementById('calView').style.display='none';const tl=document.getElementById('tlView');tl.style.display='flex';tl.style.flexDirection='column';renderTimeline();}
-function goBack(){showCal();}
+function goBack(){
+function setTransport(key, tpId){
+  if(!selTrip.transports) selTrip.transports={};
+  selTrip.transports[key]=tpId;
+  syncTrip();renderTimeline();
+}
+
+showCal();}
 function closeModal(id){document.getElementById(id).classList.add('hidden');}
 function closeOverlay(id,e){if(e.target===document.getElementById(id))closeModal(id);}
 
@@ -684,7 +708,24 @@ function renderBlocks(trip,el){
           </div>
         </div>
       </div>`;
-      if(next&&gapMin>0){const gs=durStr(block.endTime,next.startTime);html+=`<div class="gap-row"><div class="g1"></div><div class="g2"></div><div class="g3">여유 ${gs}</div></div>`;}
+      if(next&&gapMin>0){
+        const gs=durStr(block.endTime,next.startTime);
+        const tpKey=`tp_${block.id}_${next.id}`;
+        const curTp=selTrip.transports&&selTrip.transports[tpKey]||'none';
+        const tpObj=TRANSPORTS.find(t=>t.id===curTp);
+        const tpDisplay=tpObj&&tpObj.id!=='none'?` ${tpObj.icon} ${tpObj.label}`:'';
+        html+=`<div class="gap-row">
+          <div class="g1"></div><div class="g2"></div>
+          <div class="g3">
+            <div class="gap-transport">
+              <span>여유 ${gs}</span>
+              <select class="tp-select" onchange="setTransport('${tpKey}',this.value)">
+                ${TRANSPORTS.map(t=>`<option value="${t.id}" ${curTp===t.id?'selected':''}>${t.icon?t.icon+' ':''}${t.label||'선택 안 함'}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>`;
+      }
       if(next&&gapMin<0)html+=`<div class="gap-row"><div class="g1"></div><div class="g2"></div><div class="overlap-warn">⚠️ 앞 일정과 시간이 겹쳐요</div></div>`;
     });
   }
@@ -730,7 +771,14 @@ function applyPreset(id){
   syncTrip();renderTimeline();
 }
 function deleteBlock(id){selTrip.blocks=selTrip.blocks.filter(b=>b.id!=id);syncTrip();renderTimeline();}
-function deleteCurrentTrip(){if(!confirm('이 일정을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==selTrip.id);save();showCal();}
+function deleteCurrentTrip(){if(!confirm('이 일정을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==selTrip.id);save();
+function setTransport(key, tpId){
+  if(!selTrip.transports) selTrip.transports={};
+  selTrip.transports[key]=tpId;
+  syncTrip();renderTimeline();
+}
+
+showCal();}
 function syncTrip(){trips=trips.map(t=>t.id===selTrip.id?selTrip:t);save();}
 
 function buildCatGrid(){
@@ -892,6 +940,13 @@ function createPreset(){
   const icon=document.getElementById('npIcon').value.trim()||'📦';
   const name=document.getElementById('npName').value.trim();if(!name)return;
   presets.push({id:'c_'+Date.now(),icon,name,items:[]});savePresets();peShowNew=false;renderPE();
+}
+
+
+function setTransport(key, tpId){
+  if(!selTrip.transports) selTrip.transports={};
+  selTrip.transports[key]=tpId;
+  syncTrip();renderTimeline();
 }
 
 showCal();
