@@ -148,8 +148,7 @@ input{font-family:inherit;}
 .del-block{font-size:14px;color:var(--border);padding-left:10px;background:none;border:none;cursor:pointer;}
 .gap-row{display:flex;gap:12px;margin:-4px 0 2px;align-items:center;}
 .gap-row .g1{width:46px;}
-.gap-row .g2{width:36px;display:flex;justify-content:center;}
-.gap-row .g2 .dot-line{width:2px;height:28px;background:repeating-linear-gradient(to bottom,var(--acc) 0px,var(--acc) 4px,transparent 4px,transparent 8px);border-radius:2px;margin:0 auto;}
+.gap-row .g2{width:36px;}
 .gap-row .g3{flex:1;padding:3px 2px;font-size:11px;color:var(--sub);font-style:italic;}
 .overlap-row{display:flex;gap:12px;margin:-4px 0 4px;}
 .overlap-row .o1{width:46px;}.overlap-row .o2{width:36px;}
@@ -257,10 +256,6 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 .cat-btn .cicon{font-size:20px;}
 .cat-btn .clabel{font-size:9px;font-weight:700;color:var(--sub);}
 
-/* 지나간 블록 */
-.block-row.past-block{opacity:.35;}
-.block-row.current-block .block-card{border-color:var(--acc);box-shadow:0 0 0 2px rgba(92,107,192,.2);}
-
 /* 즐겨찾기 */
 .fav-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
 .fav-chip{background:var(--accL);border:1px solid rgba(92,107,192,.3);border-radius:20px;
@@ -268,6 +263,17 @@ input[type="date"]::-webkit-calendar-picker-indicator{
   display:flex;align-items:center;gap:6px;}
 .fav-chip .fav-del{color:var(--acc);opacity:.5;font-size:14px;line-height:1;}
 .fav-section-label{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:8px;margin-top:4px;}
+
+/* 준비물 세트 */
+.preset-section{margin-bottom:20px;}
+.preset-label{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:10px;letter-spacing:.3px;}
+.preset-list{display:flex;flex-wrap:wrap;gap:8px;}
+.preset-btn{background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+  padding:10px 14px;display:flex;align-items:center;gap:6px;cursor:pointer;}
+.preset-btn:active{background:var(--accL);border-color:var(--acc);}
+.preset-btn .p-icon{font-size:18px;}
+.preset-btn .p-name{font-size:13px;font-weight:700;color:var(--txt);}
+.preset-btn .p-count{font-size:11px;color:var(--sub);}
 </style>
 </head>
 <body>
@@ -406,6 +412,23 @@ input[type="date"]::-webkit-calendar-picker-indicator{
   </div>
 </div>
 
+
+<!-- 복사 모달 -->
+<div class="overlay hidden" id="copyOverlay" onclick="closeCopyModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
+    <div class="modal-header"><h2>일정 복사</h2></div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label>복사할 날짜</label>
+        <input class="styled-input" id="copyDate" type="date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="primary-btn" onclick="doCopyTrip()">복사하기</button>
+    </div>
+  </div>
+</div>
 <script>
 const CATEGORIES=[
   {id:'bus',label:'버스',icon:'🚌',color:'#4CAF50'},
@@ -423,6 +446,13 @@ const CATEGORIES=[
   {id:'etc',label:'기타',icon:'📌',color:'#757575'},
 ];
 const CHECKLIST_TEMPLATES=['교통카드','신분증','수험표','우산','충전기','현금','마스크'];
+const PRESETS=[
+  {id:'seoul', icon:'🏙️', name:'서울 외출', items:['교통카드','신분증','충전기','보조배터리','우산','현금','마스크']},
+  {id:'hospital', icon:'🏥', name:'병원', items:['신분증','의료보험증','진료예약확인증','현금','충전기','마스크']},
+  {id:'exam', icon:'📝', name:'시험', items:['수험표','신분증','컴퓨터용 수성사인펜','수정테이프','교통카드','충전기','물','간식']},
+  {id:'abroad', icon:'✈️', name:'해외 여행', items:['여권','항공권','숙소예약확인증','여행자보험','환전','신용카드','충전기','어댑터','상비약']},
+  {id:'oneday', icon:'🎒', name:'당일치기', items:['교통카드','신분증','충전기','현금','물','간식','우산']},
+];
 const t2m=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
 const m2t=m=>{const t=((m%1440)+1440)%1440;return`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};
 const durStr=(s,e)=>{const d=t2m(e)-t2m(s);if(d<=0)return'';const h=Math.floor(d/60),mn=d%60;return h&&mn?`${h}시간 ${mn}분`:h?`${h}시간`:`${mn}분`;};
@@ -455,6 +485,21 @@ function showTimeline(trip){
   renderTimeline();
 }
 function goBack(){
+
+// ── 준비물 세트 적용 ───────────────────────────────────────────────
+function applyPreset(id){
+  const preset=PRESETS.find(p=>p.id===id);
+  if(!preset) return;
+  let added=0;
+  preset.items.forEach(text=>{
+    if(!selTrip.checklist.find(c=>c.text===text)){
+      selTrip.checklist.push({id:Date.now()+Math.random(),text,done:false});
+      added++;
+    }
+  });
+  syncTrip();
+  renderTimeline();
+}
 // ── 즐겨찾기 ──────────────────────────────────────────────────────
 let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
 const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
@@ -494,8 +539,17 @@ function removeFav(p){
 
 // ── 일정 복사 ─────────────────────────────────────────────────────
 function copyTrip(){
-  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
-  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const el = document.getElementById('copyDate');
+  el.value = '';
+  document.getElementById('copyOverlay').classList.remove('hidden');
+}
+function closeCopyModal(e){
+  if(e.target===document.getElementById('copyOverlay'))
+    document.getElementById('copyOverlay').classList.add('hidden');
+}
+function doCopyTrip(){
+  const date = document.getElementById('copyDate').value;
+  if(!date) return;
   const copied = {
     id: Date.now(),
     title: selTrip.title + ' (복사)',
@@ -504,7 +558,8 @@ function copyTrip(){
     checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
   };
   trips.push(copied); save();
-  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
+  document.getElementById('copyOverlay').classList.add('hidden');
+  showTimeline(copied);
 }
 
 showCal();}
@@ -642,10 +697,7 @@ function renderBlocks(trip,el){
       const dur=durStr(block.startTime,block.endTime);
       const next=sorted[idx+1];
       const gapMin=next?t2m(next.startTime)-t2m(block.endTime):0;
-      const nowM=(new Date().getHours()*60+new Date().getMinutes());
-      const blockPast=isFuture(trip.date)&&t2m(block.endTime)<nowM||!isFuture(trip.date);
-      const blockCurrent=isFuture(trip.date)&&nowM>=t2m(block.startTime)&&nowM<t2m(block.endTime);
-      html+=`<div class="block-row${blockPast?' past-block':blockCurrent?' current-block':''}">
+      html+=`<div class="block-row">
         <div class="block-time"><div class="start">${block.startTime}</div><div class="end">${block.endTime}</div></div>
         <div class="block-icon-col"><div class="cat-icon" style="background:${c.color}18;border-color:${c.color}55;">${c.icon}</div></div>
         <div class="block-card-wrap"><div class="block-card" onclick="openEditBlock('${block.id}')">
@@ -661,7 +713,7 @@ function renderBlocks(trip,el){
             </div>
             <button class="del-block" onclick="event.stopPropagation();deleteBlock('${block.id}')">🗑</button>
           </div></div></div></div>`;
-      if(next&&gapMin>0){const gs=durStr(block.endTime,next.startTime);html+=`<div class="gap-row"><div class="g1"></div><div class="g2"><div class="dot-line"></div></div><div class="g3">여유 ${gs}</div></div>`;}
+      if(next&&gapMin>0){const gs=durStr(block.endTime,next.startTime);html+=`<div class="gap-row"><div class="g1"></div><div class="g2"></div><div class="g3">여유 ${gs}</div></div>`;}
       if(next&&gapMin<0){html+=`<div class="overlap-row"><div class="o1"></div><div class="o2"></div><div class="overlap-warn">⚠️ 앞 일정과 시간이 겹쳐요</div></div>`;}
     });
   }
@@ -672,12 +724,30 @@ function renderChecklist(trip,el){
   const done=trip.checklist.filter(c=>c.done).length;
   const avail=CHECKLIST_TEMPLATES.filter(t=>!trip.checklist.find(c=>c.text===t));
   let html=`<div class="check-summary">${done}/${trip.checklist.length} 완료</div>`;
+
+  // 프리셋 세트
+  html+=`<div class="preset-section">
+    <div class="preset-label">📦 준비물 세트로 추가</div>
+    <div class="preset-list">
+      ${PRESETS.map(p=>`
+        <button class="preset-btn" onclick="applyPreset('${p.id}')">
+          <span class="p-icon">${p.icon}</span>
+          <div>
+            <div class="p-name">${p.name}</div>
+            <div class="p-count">${p.items.length}개 항목</div>
+          </div>
+        </button>`).join('')}
+    </div>
+  </div>`;
+
+  // 기존 체크리스트 아이템
   html+=trip.checklist.map(item=>`
     <div class="check-item" onclick="toggleCheck('${item.id}')">
       <div class="check-box ${item.done?'done':'undone'}">${item.done?'<span class="tick">✓</span>':''}</div>
       <span class="check-text ${item.done?'done':'undone'}">${item.text}</span>
       <button class="check-del" onclick="event.stopPropagation();deleteCheck('${item.id}')">×</button>
     </div>`).join('');
+
   html+=`<div class="quick-label">빠른 추가</div>
     <div class="quick-tags">${avail.map(t=>`<button class="quick-tag" onclick="addCheck('${t}')">+ ${t}</button>`).join('')}</div>
     <div class="check-input-row">
@@ -693,6 +763,21 @@ function addCheck(text){if(!text.trim())return;selTrip.checklist.push({id:Date.n
 function addCheckInput(){const v=document.getElementById('checkInput').value.trim();addCheck(v);}
 function deleteBlock(id){selTrip.blocks=selTrip.blocks.filter(b=>b.id!=id);syncTrip();renderTimeline();}
 function deleteCurrentTrip(){if(!confirm('이 일정을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==selTrip.id);save();
+
+// ── 준비물 세트 적용 ───────────────────────────────────────────────
+function applyPreset(id){
+  const preset=PRESETS.find(p=>p.id===id);
+  if(!preset) return;
+  let added=0;
+  preset.items.forEach(text=>{
+    if(!selTrip.checklist.find(c=>c.text===text)){
+      selTrip.checklist.push({id:Date.now()+Math.random(),text,done:false});
+      added++;
+    }
+  });
+  syncTrip();
+  renderTimeline();
+}
 // ── 즐겨찾기 ──────────────────────────────────────────────────────
 let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
 const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
@@ -732,8 +817,17 @@ function removeFav(p){
 
 // ── 일정 복사 ─────────────────────────────────────────────────────
 function copyTrip(){
-  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
-  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const el = document.getElementById('copyDate');
+  el.value = '';
+  document.getElementById('copyOverlay').classList.remove('hidden');
+}
+function closeCopyModal(e){
+  if(e.target===document.getElementById('copyOverlay'))
+    document.getElementById('copyOverlay').classList.add('hidden');
+}
+function doCopyTrip(){
+  const date = document.getElementById('copyDate').value;
+  if(!date) return;
   const copied = {
     id: Date.now(),
     title: selTrip.title + ' (복사)',
@@ -742,7 +836,8 @@ function copyTrip(){
     checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
   };
   trips.push(copied); save();
-  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
+  document.getElementById('copyOverlay').classList.add('hidden');
+  showTimeline(copied);
 }
 
 showCal();}
@@ -822,6 +917,21 @@ function saveBlock(){
 }
 
 
+
+// ── 준비물 세트 적용 ───────────────────────────────────────────────
+function applyPreset(id){
+  const preset=PRESETS.find(p=>p.id===id);
+  if(!preset) return;
+  let added=0;
+  preset.items.forEach(text=>{
+    if(!selTrip.checklist.find(c=>c.text===text)){
+      selTrip.checklist.push({id:Date.now()+Math.random(),text,done:false});
+      added++;
+    }
+  });
+  syncTrip();
+  renderTimeline();
+}
 // ── 즐겨찾기 ──────────────────────────────────────────────────────
 let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
 const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
@@ -861,8 +971,17 @@ function removeFav(p){
 
 // ── 일정 복사 ─────────────────────────────────────────────────────
 function copyTrip(){
-  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
-  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const el = document.getElementById('copyDate');
+  el.value = '';
+  document.getElementById('copyOverlay').classList.remove('hidden');
+}
+function closeCopyModal(e){
+  if(e.target===document.getElementById('copyOverlay'))
+    document.getElementById('copyOverlay').classList.add('hidden');
+}
+function doCopyTrip(){
+  const date = document.getElementById('copyDate').value;
+  if(!date) return;
   const copied = {
     id: Date.now(),
     title: selTrip.title + ' (복사)',
@@ -871,7 +990,8 @@ function copyTrip(){
     checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
   };
   trips.push(copied); save();
-  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
+  document.getElementById('copyOverlay').classList.add('hidden');
+  showTimeline(copied);
 }
 
 showCal();
