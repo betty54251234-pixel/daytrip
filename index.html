@@ -467,7 +467,7 @@ const DEFAULT_PRESETS=[
   {id:'hospital',icon:'🏥',name:'병원',items:['신분증','의료보험증','진료예약확인증','현금','충전기','마스크']},
   {id:'exam',icon:'📝',name:'시험',items:['수험표','신분증','컴퓨터용 수성사인펜','수정테이프','교통카드','충전기','물','간식']},
   {id:'abroad',icon:'✈️',name:'해외 여행',items:['여권','항공권','숙소예약확인증','여행자보험','환전','신용카드','충전기','어댑터','상비약']},
-  {id:'oneday',icon:'🎒',name:'당일치기',items:['교통카드','신분증','충전기','현금','물','간식','우산']},
+  {id:'oneday',icon:'🎒',name:'1일 일정',items:['교통카드','신분증','충전기','현금','물','간식','우산']},
 ];
 const CHECKLIST_TEMPLATES=['교통카드','신분증','수험표','우산','충전기','현금','마스크'];
 
@@ -500,7 +500,8 @@ const fmtRange=t=>{
   const s=t.startDate||t.date,e=t.endDate||t.date;
   if(s===e)return fmtDate(s);
   const sd=new Date(s+'T00:00:00'),ed=new Date(e+'T00:00:00');
-  return`${sd.getMonth()+1}/${sd.getDate()} ~ ${ed.getMonth()+1}/${ed.getDate()} (${dayCount(t)}일)`;
+  const n=dayCount(t);
+  return`${sd.getMonth()+1}/${sd.getDate()} ~ ${ed.getMonth()+1}/${ed.getDate()} (${n-1}박 ${n}일)`;
 };
 
 let trips=JSON.parse(localStorage.getItem('daytrip_v1')||'[]').map(migrate);
@@ -562,16 +563,7 @@ function renderDays(){
     cell.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;height:50px;cursor:pointer;position:relative;';
     cell.onclick=()=>goDate(ds);
 
-    // 연박 범위 바
-    if(isMulti){
-      const bar=document.createElement('div');
-      const color=future?'rgba(92,107,192,.2)':'rgba(139,144,160,.18)';
-      let left='0%', right='0%', bRadius='0';
-      if(pos==='start'){left='50%';right='0%';bRadius='0 12px 12px 0';}
-      else if(pos==='end'){left='0%';right='50%';bRadius='12px 0 0 12px';}
-      bar.style.cssText=`position:absolute;top:50%;transform:translateY(-50%);height:30px;left:${left};right:${right};background:${color};border-radius:${bRadius};z-index:0;pointer-events:none;`;
-      cell.appendChild(bar);
-    }
+
 
     // 날짜 숫자
     const num=document.createElement('div');
@@ -584,10 +576,10 @@ function renderDays(){
     num.textContent=d;
     cell.appendChild(num);
 
-    // 당일치기 점
-    if(hasTrip&&!isMulti){
+    // 1일 일정 점
+    if(hasTrip&&(pos==='single'||pos==='start')){
       const dots=document.createElement('div');
-      dots.style.cssText='position:absolute;bottom:4px;display:flex;gap:3px;z-index:2;';
+      dots.style.cssText='position:absolute;bottom:7px;display:flex;gap:3px;z-index:2;';
       info.slice(0,2).forEach(({trip})=>{
         const dot=document.createElement('div');
         dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${tripFuture(trip)?'var(--acc)':'var(--sub)'};`;
@@ -614,7 +606,7 @@ function renderNextCard(){
       <div class="dday-badge"><div class="dday-text">${dDay(next.startDate||next.date)}</div></div>
     </div>
     <div class="next-meta">
-      ${isMultiDay(next)?`<span>🌙 ${dayCount(next)}일</span>`:''}
+      ${isMultiDay(next)?`<span>🌙 ${dayCount(next)-1}박 ${dayCount(next)}일</span>`:''}
       <span>📍 ${next.blocks.length}개 장소</span>
       ${tc>0?`<span>💰 ${tc.toLocaleString()}원</span>`:''}
     </div></div>`;
@@ -635,7 +627,7 @@ function renderTripList(){
       <div class="trip-info">
         <div class="trip-name">${t.title}</div>
         <div class="trip-meta">
-          ${isMultiDay(t)?`<span>🌙 ${dayCount(t)}일</span>`:''}
+          ${isMultiDay(t)?`<span>🌙 ${dayCount(t)-1}박 ${dayCount(t)}일</span>`:''}
           <span>📍 ${t.blocks.length}개</span>
           ${tc>0?`<span>💰 ${tc.toLocaleString()}원</span>`:''}
           <span class="status-badge ${future?'upcoming':'done'}">${future?'예정':'완료'}</span>
@@ -660,9 +652,9 @@ function onDateChange(){
   const s=document.getElementById('newTripStart').value,e=document.getElementById('newTripEnd').value;
   const el=document.getElementById('dayCountPreview');
   if(!s||!e){el.textContent='';return;}
-  if(e<s){document.getElementById('newTripEnd').value=s;el.textContent='당일치기';return;}
+  if(e<s){document.getElementById('newTripEnd').value=s;el.textContent='1일 일정';return;}
   const diff=Math.round((new Date(e+'T00:00:00')-new Date(s+'T00:00:00'))/86400000)+1;
-  el.textContent=diff===1?'당일치기 ☀️':`${diff}일 여행 🌙`;
+  el.textContent=diff===1?'1일 일정 ☀️':`${diff-1}박 ${diff}일 🌙`;
 }
 function createTrip(){
   const title=document.getElementById('newTripTitle').value.trim();
