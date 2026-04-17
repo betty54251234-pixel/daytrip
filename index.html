@@ -17,7 +17,7 @@
   --txt:#1a1d2e;--sub:#8b90a0;--acc:#5C6BC0;--accL:#EEF0FB;
   --red:#f85149;--sun:#2188ff;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+html{background:var(--header);}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;}
 button{border:none;background:none;cursor:pointer;font-family:inherit;}
 input{font-family:inherit;}
@@ -37,7 +37,7 @@ input{font-family:inherit;}
 .dow-row{display:grid;grid-template-columns:repeat(7,1fr);padding:10px 0;border-bottom:1px solid var(--border);}
 .dow-cell{text-align:center;font-size:11px;font-weight:700;color:var(--sub);}
 .dow-cell:first-child{color:var(--red);}.dow-cell:last-child{color:var(--sun);}
-.days-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px;}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:2px 0;}
 .day-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:50px;cursor:pointer;position:relative;}
 .day-num{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
@@ -531,39 +531,68 @@ function renderDays(){
   const first=new Date(calYear,calMonth,1).getDay();
   const total=new Date(calYear,calMonth+1,0).getDate();
   const today=todayStr();
+
+  // 날짜별 정보 수집
   const dateInfo={};
   trips.forEach(t=>{
     const days=tripDays(t);
+    const multi=days.length>1;
     days.forEach((ds,i)=>{
       if(!dateInfo[ds])dateInfo[ds]=[];
-      const pos=days.length===1?'single':i===0?'start':i===days.length-1?'end':'mid';
-      dateInfo[ds].push({trip:t,pos});
+      const pos=multi?(i===0?'start':i===days.length-1?'end':'mid'):'single';
+      dateInfo[ds].push({trip:t,pos,multi});
     });
   });
+
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day-cell';grid.appendChild(e);}
+
   for(let d=1;d<=total;d++){
     const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow=(first+d-1)%7;
     const info=dateInfo[ds]||[];
     const hasTrip=info.length>0;
-    const rangePos=hasTrip?info[0].pos:null;
     const future=hasTrip?tripFuture(info[0].trip):true;
+    const pos=hasTrip?info[0].pos:null;
+    const isMulti=hasTrip&&info[0].multi;
+
     const cell=document.createElement('div');
-    cell.className='day-cell'+(rangePos&&rangePos!=='single'?' range-'+rangePos:'');
+    cell.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;height:50px;cursor:pointer;position:relative;';
     cell.onclick=()=>goDate(ds);
-    if(rangePos&&rangePos!=='single'){
-      const bar=document.createElement('div');bar.className='range-bar';
-      bar.style.background=future?'rgba(92,107,192,.18)':'rgba(139,144,160,.15)';
+
+    // 연박 범위 바
+    if(isMulti){
+      const bar=document.createElement('div');
+      const color=future?'rgba(92,107,192,.2)':'rgba(139,144,160,.18)';
+      let left='0%', right='0%', bRadius='0';
+      if(pos==='start'){left='50%';bRadius='12px 0 0 12px';}
+      else if(pos==='end'){right='50%';bRadius='0 12px 12px 0';}
+      bar.style.cssText=`position:absolute;top:50%;transform:translateY(-50%);height:30px;left:${left};right:${right};background:${color};border-radius:${bRadius};z-index:0;pointer-events:none;`;
       cell.appendChild(bar);
     }
-    let cls='day-num';
-    if(ds===today)cls+=' today';if(dow===0)cls+=' sun';if(dow===6)cls+=' sat';if(hasTrip)cls+=' has-trip';
-    const num=document.createElement('div');num.className=cls;num.textContent=d;cell.appendChild(num);
-    if(hasTrip&&rangePos==='single'){
-      const dots=document.createElement('div');dots.className='dots';
-      info.slice(0,2).forEach(({trip})=>{const dot=document.createElement('div');dot.className='dot'+(tripFuture(trip)?'':' past');dots.appendChild(dot);});
+
+    // 날짜 숫자
+    const num=document.createElement('div');
+    let numStyle=`width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;z-index:1;font-weight:${hasTrip?'800':'400'};`;
+    if(ds===today){numStyle+='background:var(--acc);color:#fff;font-weight:800;';}
+    else if(dow===0){numStyle+='color:var(--red);';}
+    else if(dow===6){numStyle+='color:var(--sun);';}
+    else{numStyle+='color:var(--txt);';}
+    num.style.cssText=numStyle;
+    num.textContent=d;
+    cell.appendChild(num);
+
+    // 당일치기 점
+    if(hasTrip&&!isMulti){
+      const dots=document.createElement('div');
+      dots.style.cssText='position:absolute;bottom:4px;display:flex;gap:3px;z-index:2;';
+      info.slice(0,2).forEach(({trip})=>{
+        const dot=document.createElement('div');
+        dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${tripFuture(trip)?'var(--acc)':'var(--sub)'};`;
+        dots.appendChild(dot);
+      });
       cell.appendChild(dots);
     }
+
     grid.appendChild(cell);
   }
 }
