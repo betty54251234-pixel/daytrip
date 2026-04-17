@@ -113,10 +113,10 @@ input{font-family:inherit;}
   font-size:13px;font-weight:700;color:var(--headerSub2);background:none;}
 .tab-btn.active{background:var(--acc);color:#fff;}
 .tabs-wrap{padding:4px 16px 0;}
-.day-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 0;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.day-tabs{display:flex;justify-content:center;gap:8px;overflow-x:auto;
+  padding:10px 16px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .day-tabs::-webkit-scrollbar{display:none;}
-.day-tab{padding:6px 14px;border-radius:20px;border:1.5px solid var(--headerBdr);
+.day-tab{padding:8px 18px;border-radius:20px;border:1.5px solid var(--headerBdr);
   color:var(--headerSub2);font-size:12px;font-weight:700;white-space:nowrap;background:none;flex-shrink:0;}
 .day-tab.active{background:var(--acc);border-color:var(--acc);color:#fff;}
 
@@ -487,7 +487,10 @@ const migrate=t=>({...t,startDate:t.startDate||t.date||'',endDate:t.endDate||t.d
 const tripDays=t=>{
   const days=[];let d=new Date((t.startDate||t.date)+'T00:00:00');
   const end=new Date((t.endDate||t.date)+'T00:00:00');
-  while(d<=end){days.push(d.toISOString().split('T')[0]);d.setDate(d.getDate()+1);}
+  while(d<=end){
+    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+    days.push(`${y}-${m}-${day}`);d.setDate(d.getDate()+1);
+  }
   return days;
 };
 const isMultiDay=t=>(t.startDate||t.date)!==(t.endDate||t.date);
@@ -564,8 +567,8 @@ function renderDays(){
       const bar=document.createElement('div');
       const color=future?'rgba(92,107,192,.2)':'rgba(139,144,160,.18)';
       let left='0%', right='0%', bRadius='0';
-      if(pos==='start'){left='50%';bRadius='12px 0 0 12px';}
-      else if(pos==='end'){right='50%';bRadius='0 12px 12px 0';}
+      if(pos==='start'){left='50%';right='0%';bRadius='0 12px 12px 0';}
+      else if(pos==='end'){left='0%';right='50%';bRadius='12px 0 0 12px';}
       bar.style.cssText=`position:absolute;top:50%;transform:translateY(-50%);height:30px;left:${left};right:${right};background:${color};border-radius:${bRadius};z-index:0;pointer-events:none;`;
       cell.appendChild(bar);
     }
