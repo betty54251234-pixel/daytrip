@@ -146,8 +146,10 @@ input{font-family:inherit;}
 .block-dur,.block-cost{font-size:11px;color:var(--sub);}
 .block-memo{font-size:12px;color:var(--sub);margin-top:6px;}
 .del-block{font-size:14px;color:var(--border);padding-left:10px;background:none;border:none;cursor:pointer;}
-.gap-row{display:flex;gap:12px;margin:-4px 0 2px;}
-.gap-row .g1{width:46px;}.gap-row .g2{width:36px;text-align:center;font-size:12px;color:var(--border);}
+.gap-row{display:flex;gap:12px;margin:-4px 0 2px;align-items:center;}
+.gap-row .g1{width:46px;}
+.gap-row .g2{width:36px;display:flex;justify-content:center;}
+.gap-row .g2 .dot-line{width:2px;height:28px;background:repeating-linear-gradient(to bottom,var(--acc) 0px,var(--acc) 4px,transparent 4px,transparent 8px);border-radius:2px;margin:0 auto;}
 .gap-row .g3{flex:1;padding:3px 2px;font-size:11px;color:var(--sub);font-style:italic;}
 .overlap-row{display:flex;gap:12px;margin:-4px 0 4px;}
 .overlap-row .o1{width:46px;}.overlap-row .o2{width:36px;}
@@ -590,7 +592,7 @@ function renderBlocks(trip,el){
             </div>
             <button class="del-block" onclick="event.stopPropagation();deleteBlock('${block.id}')">🗑</button>
           </div></div></div></div>`;
-      if(next&&gapMin>0){const gs=durStr(block.endTime,next.startTime);html+=`<div class="gap-row"><div class="g1"></div><div class="g2">↕</div><div class="g3">여유 ${gs}</div></div>`;}
+      if(next&&gapMin>0){const gs=durStr(block.endTime,next.startTime);html+=`<div class="gap-row"><div class="g1"></div><div class="g2"><div class="dot-line"></div></div><div class="g3">여유 ${gs}</div></div>`;}
       if(next&&gapMin<0){html+=`<div class="overlap-row"><div class="o1"></div><div class="o2"></div><div class="overlap-warn">⚠️ 앞 일정과 시간이 겹쳐요</div></div>`;}
     });
   }
