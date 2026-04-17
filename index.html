@@ -568,7 +568,7 @@ function renderDays(){
     // 날짜 숫자
     const num=document.createElement('div');
     let numStyle=`width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;z-index:1;font-weight:${hasTrip?'800':'400'};`;
-    if(ds===today){numStyle+='background:var(--acc);color:#fff;font-weight:800;';}
+    if(ds===today){numStyle+='background:var(--acc);color:#fff;font-weight:800;width:30px;height:30px;border-radius:50%;';}
     else if(dow===0){numStyle+='color:var(--red);';}
     else if(dow===6){numStyle+='color:var(--sun);';}
     else{numStyle+='color:var(--txt);';}
@@ -577,12 +577,13 @@ function renderDays(){
     cell.appendChild(num);
 
     // 1일 일정 점
-    if(hasTrip&&(pos==='single'||pos==='start')){
+    if(hasTrip){
       const dots=document.createElement('div');
-      dots.style.cssText='position:absolute;bottom:7px;display:flex;gap:3px;z-index:2;';
+      dots.style.cssText='position:absolute;bottom:4px;display:flex;gap:3px;z-index:2;';
       info.slice(0,2).forEach(({trip})=>{
         const dot=document.createElement('div');
-        dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${tripFuture(trip)?'var(--acc)':'var(--sub)'};`;
+        const dotColor=tripFuture(trip)?(info[0].multi?'#29B6F6':'var(--acc)'):'var(--sub)';
+        dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${dotColor};`;
         dots.appendChild(dot);
       });
       cell.appendChild(dots);
