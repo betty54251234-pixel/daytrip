@@ -388,7 +388,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
         <div class="time-row">
           <div class="time-field"><label>시작</label><input type="time" id="bfStart" value="09:00" oninput="onStartChange()"></div>
           <div class="time-field"><label>종료</label><input type="time" id="bfEnd" value="10:00" oninput="onEndChange()"></div>
-          <div class="time-field"><label>소요</label><input type="text" id="bfDur" value="01:00" placeholder="01:00" oninput="onDurChange()" maxlength="5"></div>
+          <div class="time-field"><label>소요</label><input type="time" id="bfDur" value="01:00" oninput="onDurChange()"></div>
         </div>
         <div class="dur-preview" id="durPreview">⏱ 1시간</div>
       </div>
@@ -582,7 +582,7 @@ function renderDays(){
       dots.style.cssText='position:absolute;bottom:4px;display:flex;gap:3px;z-index:2;';
       info.slice(0,2).forEach(({trip})=>{
         const dot=document.createElement('div');
-        const dotColor=tripFuture(trip)?(info[0].multi?'#29B6F6':'var(--acc)'):'var(--sub)';
+        const dotColor=tripFuture(trip)?(info[0].multi?'#4DB6AC':'var(--acc)'):'var(--sub)';
         dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${dotColor};`;
         dots.appendChild(dot);
       });
