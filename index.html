@@ -256,6 +256,18 @@ input[type="date"]::-webkit-calendar-picker-indicator{
   background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 .cat-btn .cicon{font-size:20px;}
 .cat-btn .clabel{font-size:9px;font-weight:700;color:var(--sub);}
+
+/* 지나간 블록 */
+.block-row.past-block{opacity:.35;}
+.block-row.current-block .block-card{border-color:var(--acc);box-shadow:0 0 0 2px rgba(92,107,192,.2);}
+
+/* 즐겨찾기 */
+.fav-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.fav-chip{background:var(--accL);border:1px solid rgba(92,107,192,.3);border-radius:20px;
+  padding:7px 13px;font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:6px;}
+.fav-chip .fav-del{color:var(--acc);opacity:.5;font-size:14px;line-height:1;}
+.fav-section-label{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:8px;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -305,7 +317,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{
             <span class="tl-dday" id="tlDday"></span>
           </div>
         </div>
-        <button class="del-btn" onclick="deleteCurrentTrip()">🗑</button>
+        <button class="del-btn" onclick="copyTrip()" style="margin-right:4px;">📋</button><button class="del-btn" onclick="deleteCurrentTrip()">🗑</button>
       </div>
       <div class="tabs-wrap">
         <div class="tabs">
@@ -370,7 +382,8 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 
       <div class="input-group">
         <label>장소명</label>
-        <input class="styled-input" id="bfPlace" placeholder="예: 강남세브란스병원">
+        <input class="styled-input" id="bfPlace" placeholder="예: 강남세브란스병원" oninput="renderFavSection()">
+      <div id="favSection"></div>
       </div>
 
       <div class="input-group">
@@ -441,7 +454,60 @@ function showTimeline(trip){
   tl.style.display='flex';tl.style.flexDirection='column';
   renderTimeline();
 }
-function goBack(){showCal();}
+function goBack(){
+// ── 즐겨찾기 ──────────────────────────────────────────────────────
+let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
+const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
+
+function renderFavSection(){
+  const el = document.getElementById('favSection');
+  if(!el) return;
+  const cur = document.getElementById('bfPlace').value.trim();
+  const isAlready = favPlaces.includes(cur);
+  let html = '';
+  if(favPlaces.length){
+    html += '<div class="fav-section-label">⭐ 즐겨찾기</div><div class="fav-wrap">';
+    html += favPlaces.map(p=>`
+      <div class="fav-chip" onclick="applyFav('${p.replace(/'/g,"\'")}')">
+        ${p}
+        <span class="fav-del" onclick="event.stopPropagation();removeFav('${p.replace(/'/g,"\'")}')">×</span>
+      </div>`).join('');
+    html += '</div>';
+  }
+  if(cur && !isAlready){
+    html += `<button onclick="addFav()" style="font-size:11px;color:var(--acc);font-weight:700;
+      background:none;border:none;cursor:pointer;margin-bottom:8px;">⭐ '${cur}' 즐겨찾기에 추가</button>`;
+  }
+  el.innerHTML = html;
+}
+function applyFav(p){
+  document.getElementById('bfPlace').value = p;
+  renderFavSection();
+}
+function addFav(){
+  const p = document.getElementById('bfPlace').value.trim();
+  if(p && !favPlaces.includes(p)){ favPlaces.push(p); saveFavs(); renderFavSection(); }
+}
+function removeFav(p){
+  favPlaces = favPlaces.filter(x=>x!==p); saveFavs(); renderFavSection();
+}
+
+// ── 일정 복사 ─────────────────────────────────────────────────────
+function copyTrip(){
+  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
+  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const copied = {
+    id: Date.now(),
+    title: selTrip.title + ' (복사)',
+    date,
+    blocks: selTrip.blocks.map(b=>({...b, id:Date.now()+Math.random()})),
+    checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
+  };
+  trips.push(copied); save();
+  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
+}
+
+showCal();}
 
 function renderCal(){
   document.getElementById('monthLabel').textContent=`${calYear}년 ${calMonth+1}월`;
@@ -576,7 +642,10 @@ function renderBlocks(trip,el){
       const dur=durStr(block.startTime,block.endTime);
       const next=sorted[idx+1];
       const gapMin=next?t2m(next.startTime)-t2m(block.endTime):0;
-      html+=`<div class="block-row">
+      const nowM=(new Date().getHours()*60+new Date().getMinutes());
+      const blockPast=isFuture(trip.date)&&t2m(block.endTime)<nowM||!isFuture(trip.date);
+      const blockCurrent=isFuture(trip.date)&&nowM>=t2m(block.startTime)&&nowM<t2m(block.endTime);
+      html+=`<div class="block-row${blockPast?' past-block':blockCurrent?' current-block':''}">
         <div class="block-time"><div class="start">${block.startTime}</div><div class="end">${block.endTime}</div></div>
         <div class="block-icon-col"><div class="cat-icon" style="background:${c.color}18;border-color:${c.color}55;">${c.icon}</div></div>
         <div class="block-card-wrap"><div class="block-card" onclick="openEditBlock('${block.id}')">
@@ -623,7 +692,60 @@ function deleteCheck(id){selTrip.checklist=selTrip.checklist.filter(c=>c.id!=id)
 function addCheck(text){if(!text.trim())return;selTrip.checklist.push({id:Date.now(),text,done:false});syncTrip();renderTimeline();}
 function addCheckInput(){const v=document.getElementById('checkInput').value.trim();addCheck(v);}
 function deleteBlock(id){selTrip.blocks=selTrip.blocks.filter(b=>b.id!=id);syncTrip();renderTimeline();}
-function deleteCurrentTrip(){if(!confirm('이 일정을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==selTrip.id);save();showCal();}
+function deleteCurrentTrip(){if(!confirm('이 일정을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==selTrip.id);save();
+// ── 즐겨찾기 ──────────────────────────────────────────────────────
+let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
+const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
+
+function renderFavSection(){
+  const el = document.getElementById('favSection');
+  if(!el) return;
+  const cur = document.getElementById('bfPlace').value.trim();
+  const isAlready = favPlaces.includes(cur);
+  let html = '';
+  if(favPlaces.length){
+    html += '<div class="fav-section-label">⭐ 즐겨찾기</div><div class="fav-wrap">';
+    html += favPlaces.map(p=>`
+      <div class="fav-chip" onclick="applyFav('${p.replace(/'/g,"\'")}')">
+        ${p}
+        <span class="fav-del" onclick="event.stopPropagation();removeFav('${p.replace(/'/g,"\'")}')">×</span>
+      </div>`).join('');
+    html += '</div>';
+  }
+  if(cur && !isAlready){
+    html += `<button onclick="addFav()" style="font-size:11px;color:var(--acc);font-weight:700;
+      background:none;border:none;cursor:pointer;margin-bottom:8px;">⭐ '${cur}' 즐겨찾기에 추가</button>`;
+  }
+  el.innerHTML = html;
+}
+function applyFav(p){
+  document.getElementById('bfPlace').value = p;
+  renderFavSection();
+}
+function addFav(){
+  const p = document.getElementById('bfPlace').value.trim();
+  if(p && !favPlaces.includes(p)){ favPlaces.push(p); saveFavs(); renderFavSection(); }
+}
+function removeFav(p){
+  favPlaces = favPlaces.filter(x=>x!==p); saveFavs(); renderFavSection();
+}
+
+// ── 일정 복사 ─────────────────────────────────────────────────────
+function copyTrip(){
+  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
+  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const copied = {
+    id: Date.now(),
+    title: selTrip.title + ' (복사)',
+    date,
+    blocks: selTrip.blocks.map(b=>({...b, id:Date.now()+Math.random()})),
+    checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
+  };
+  trips.push(copied); save();
+  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
+}
+
+showCal();}
 function syncTrip(){trips=trips.map(t=>t.id===selTrip.id?selTrip:t);save();}
 
 function buildCatGrid(){
@@ -664,6 +786,7 @@ function openAddBlock(){
   document.getElementById('bfMemo').value='';
   document.getElementById('bfCost').value='';
   buildCatGrid();updateDurPreview();
+  renderFavSection();
   document.getElementById('blockOverlay').classList.remove('hidden');
 }
 function openEditBlock(id){
@@ -678,6 +801,7 @@ function openEditBlock(id){
   document.getElementById('bfMemo').value=block.memo||'';
   document.getElementById('bfCost').value=block.cost||'';
   buildCatGrid();updateDurPreview();
+  renderFavSection();
   document.getElementById('blockOverlay').classList.remove('hidden');
 }
 function closeBlockModal(e){if(e.target===document.getElementById('blockOverlay'))document.getElementById('blockOverlay').classList.add('hidden');}
@@ -695,6 +819,59 @@ function saveBlock(){
   syncTrip();
   document.getElementById('blockOverlay').classList.add('hidden');
   renderTimeline();
+}
+
+
+// ── 즐겨찾기 ──────────────────────────────────────────────────────
+let favPlaces = JSON.parse(localStorage.getItem('daytrip_favs')||'[]');
+const saveFavs = () => localStorage.setItem('daytrip_favs', JSON.stringify(favPlaces));
+
+function renderFavSection(){
+  const el = document.getElementById('favSection');
+  if(!el) return;
+  const cur = document.getElementById('bfPlace').value.trim();
+  const isAlready = favPlaces.includes(cur);
+  let html = '';
+  if(favPlaces.length){
+    html += '<div class="fav-section-label">⭐ 즐겨찾기</div><div class="fav-wrap">';
+    html += favPlaces.map(p=>`
+      <div class="fav-chip" onclick="applyFav('${p.replace(/'/g,"\'")}')">
+        ${p}
+        <span class="fav-del" onclick="event.stopPropagation();removeFav('${p.replace(/'/g,"\'")}')">×</span>
+      </div>`).join('');
+    html += '</div>';
+  }
+  if(cur && !isAlready){
+    html += `<button onclick="addFav()" style="font-size:11px;color:var(--acc);font-weight:700;
+      background:none;border:none;cursor:pointer;margin-bottom:8px;">⭐ '${cur}' 즐겨찾기에 추가</button>`;
+  }
+  el.innerHTML = html;
+}
+function applyFav(p){
+  document.getElementById('bfPlace').value = p;
+  renderFavSection();
+}
+function addFav(){
+  const p = document.getElementById('bfPlace').value.trim();
+  if(p && !favPlaces.includes(p)){ favPlaces.push(p); saveFavs(); renderFavSection(); }
+}
+function removeFav(p){
+  favPlaces = favPlaces.filter(x=>x!==p); saveFavs(); renderFavSection();
+}
+
+// ── 일정 복사 ─────────────────────────────────────────────────────
+function copyTrip(){
+  const date = prompt('복사할 날짜를 입력하세요 (예: 2025-08-20)');
+  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){ if(date!==null) alert('날짜 형식이 올바르지 않아요'); return; }
+  const copied = {
+    id: Date.now(),
+    title: selTrip.title + ' (복사)',
+    date,
+    blocks: selTrip.blocks.map(b=>({...b, id:Date.now()+Math.random()})),
+    checklist: selTrip.checklist.map(c=>({...c, id:Date.now()+Math.random(), done:false})),
+  };
+  trips.push(copied); save();
+  if(confirm('복사 완료! 복사된 일정으로 이동할까요?')) showTimeline(copied);
 }
 
 showCal();
