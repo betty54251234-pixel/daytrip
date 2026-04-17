@@ -129,7 +129,7 @@ input{font-family:inherit;}
 .block-time{width:46px;padding-top:7px;text-align:right;}
 .block-time .start{font-size:12px;font-weight:700;color:var(--txt);}
 .block-time .end{font-size:10px;color:var(--sub);margin-top:2px;}
-.block-icon-col{display:flex;flex-direction:column;align-items:center;padding-top:4px;}
+
 .cat-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;
   justify-content:center;font-size:18px;border-width:1.5px;border-style:solid;}
 .block-card-wrap{flex:1;margin-bottom:8px;}
@@ -269,6 +269,10 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
 .np-name:focus{border-color:var(--acc);}
 .np-create{width:100%;background:var(--acc);border-radius:12px;padding:12px;
   color:#fff;font-size:14px;font-weight:800;border:none;cursor:pointer;}
+
+.tl-line{width:2px;flex:1;background:linear-gradient(to bottom, var(--border), transparent);
+  margin:4px auto 0;min-height:16px;border-radius:1px;}
+.block-icon-col{display:flex;flex-direction:column;align-items:center;padding-top:4px;}
 </style>
 </head>
 <body>
@@ -388,7 +392,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
         <div class="time-row">
           <div class="time-field"><label>시작</label><input type="time" id="bfStart" value="09:00" oninput="onStartChange()"></div>
           <div class="time-field"><label>종료</label><input type="time" id="bfEnd" value="10:00" oninput="onEndChange()"></div>
-          <div class="time-field"><label>소요</label><input type="time" id="bfDur" value="01:00" oninput="onDurChange()"></div>
+          <div class="time-field"><label>소요</label><input type="text" id="bfDur" value="01:00" placeholder="01:00" oninput="onDurChange()" maxlength="5" inputmode="numeric"></div>
         </div>
         <div class="dur-preview" id="durPreview">⏱ 1시간</div>
       </div>
@@ -449,11 +453,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
 <script>
 const CATEGORIES=[
   {id:'bus',label:'버스',icon:'🚌',color:'#4CAF50'},
-  {id:'subway',label:'지하철',icon:'🚇',color:'#039BE5'},
   {id:'train',label:'기차',icon:'🚄',color:'#8E24AA'},
-  {id:'walk',label:'도보',icon:'🚶',color:'#FB8C00'},
-  {id:'taxi',label:'택시',icon:'🚕',color:'#F9A825'},
-  {id:'car',label:'자가용',icon:'🚗',color:'#546E7A'},
   {id:'meal',label:'식사',icon:'🍽️',color:'#E53935'},
   {id:'cafe',label:'카페',icon:'☕',color:'#6D4C41'},
   {id:'shopping',label:'쇼핑',icon:'🛍️',color:'#D81B60'},
@@ -582,7 +582,7 @@ function renderDays(){
       dots.style.cssText='position:absolute;bottom:4px;display:flex;gap:3px;z-index:2;';
       info.slice(0,2).forEach(({trip})=>{
         const dot=document.createElement('div');
-        const dotColor=tripFuture(trip)?(info[0].multi?'#4DB6AC':'var(--acc)'):'var(--sub)';
+        const dotColor=tripFuture(trip)?(info[0].multi?'#F9A825':'var(--acc)'):'var(--sub)';
         dot.style.cssText=`width:5px;height:5px;border-radius:50%;background:${dotColor};`;
         dots.appendChild(dot);
       });
@@ -703,7 +703,10 @@ function renderBlocks(trip,el){
     const next=sorted[idx+1];const gapMin=next?t2m(next.startTime)-t2m(block.endTime):0;
     html+=`<div class="block-row">
       <div class="block-time"><div class="start">${block.startTime}</div><div class="end">${block.endTime}</div></div>
-      <div class="block-icon-col"><div class="cat-icon" style="background:${c.color}18;border-color:${c.color}55;">${c.icon}</div></div>
+      <div class="block-icon-col">
+        <div class="cat-icon" style="background:${c.color}18;border-color:${c.color}55;">${c.icon}</div>
+        ${!isLast?'<div class="tl-line"></div>':''}
+      </div>
       <div class="block-card-wrap"><div class="block-card" onclick="openEditBlock('${block.id}')">
         <div class="block-card-header">
           <div style="flex:1;">
