@@ -832,8 +832,12 @@ function onDurChange(){if(_iD)return;const s=document.getElementById('bfStart').
 function openAddBlock(){
   editBlockId=null;selCatId='etc';selBlockDay=isMultiDay(selTrip)?curDayIdx:0;
   document.getElementById('blockModalTitle').textContent='일정 추가';
-  document.getElementById('bfStart').value='09:00';
-  document.getElementById('bfEnd').value='10:00';
+  const dayIdx=isMultiDay(selTrip)?curDayIdx:0;
+  const dayBlocks=[...selTrip.blocks].filter(b=>(b.dayIdx||0)===dayIdx).sort((a,b)=>t2m(a.startTime)-t2m(b.startTime));
+  const lastEnd=dayBlocks.length?dayBlocks[dayBlocks.length-1].endTime:'09:00';
+  const newEnd=m2t(t2m(lastEnd)+60);
+  document.getElementById('bfStart').value=lastEnd;
+  document.getElementById('bfEnd').value=newEnd;
   document.getElementById('bfDur').value='1:00';
   document.getElementById('bfPlace').value='';
   document.getElementById('bfMemo').value='';
