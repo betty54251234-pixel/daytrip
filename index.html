@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DayTrip</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DayTrip">
+<meta name="theme-color" content="#0d1117">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --header:#0d1117;--headerSub:#161b22;--headerBdr:#30363d;
+  --headerTxt:#e6edf3;--headerSub2:#7d8590;
+  --bg:#f5f6fa;--card:#fff;--card2:#f0f2f8;--border:#e4e6ef;
+  --txt:#1a1d2e;--sub:#8b90a0;--acc:#5C6BC0;--accL:#EEF0FB;
+  --red:#f85149;--sun:#2188ff;--green:#2da44e;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;}
+button{border:none;background:none;cursor:pointer;font-family:inherit;}
+input{font-family:inherit;}
+
+/* header */
+.hd{background:var(--header);padding:env(safe-area-inset-top) 0 0;}
+.hd-inner{padding:14px 20px 16px;display:flex;justify-content:space-between;align-items:center;}
+.hd-title{font-size:22px;font-weight:900;color:var(--headerTxt);letter-spacing:-.5px;}
+.hd-sub{font-size:11px;color:var(--headerSub2);margin-top:2px;}
+.btn-new{background:var(--acc);border-radius:12px;padding:8px 14px;
+  color:#fff;font-weight:700;font-size:13px;}
+
+/* month nav */
+.month-nav{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 8px;}
+.month-nav button{font-size:24px;color:var(--txt);padding:4px 8px;background:none;border:none;}
+.month-nav span{font-size:17px;font-weight:800;color:var(--txt);}
+
+/* calendar card */
+.cal-card{margin:0 16px;background:var(--card);border-radius:20px;
+  overflow:hidden;border:1px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.dow-row{display:grid;grid-template-columns:repeat(7,1fr);
+  padding:10px 0;border-bottom:1px solid var(--border);}
+.dow-cell{text-align:center;font-size:11px;font-weight:700;color:var(--sub);}
+.dow-cell:first-child{color:var(--red);}
+.dow-cell:last-child{color:var(--sun);}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px;}
+.day-cell{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:50px;cursor:pointer;position:relative;}
+.day-num{width:34px;height:34px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:14px;}
+.day-num.today{background:var(--acc);color:#fff;font-weight:800;}
+.day-num.selected{border:2px solid var(--acc);color:var(--acc);font-weight:700;}
+.day-num.has-trip{font-weight:800;}
+.day-num.sun{color:var(--red);}
+.day-num.sat{color:var(--sun);}
+.dots{position:absolute;bottom:4px;display:flex;gap:3px;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--acc);}
+.dot.past{background:var(--sub);}
+
+/* next trip card */
+.next-card{margin:16px 16px 0;background:var(--card);border-radius:20px;
+  padding:16px;border:1.5px solid rgba(92,107,192,.4);
+  box-shadow:0 3px 10px rgba(92,107,192,.1);cursor:pointer;}
+.next-label{font-size:11px;color:var(--acc);font-weight:700;
+  letter-spacing:.5px;margin-bottom:4px;}
+.next-title{font-size:17px;font-weight:800;color:var(--txt);margin-bottom:3px;}
+.next-date{font-size:12px;color:var(--sub);}
+.dday-badge{background:var(--accL);border-radius:14px;padding:10px 14px;
+  text-align:center;border:1px solid rgba(92,107,192,.3);min-width:70px;}
+.dday-text{font-size:20px;font-weight:900;color:var(--acc);line-height:1.2;}
+.next-meta{display:flex;gap:12px;margin-top:10px;}
+.next-meta span{font-size:11px;color:var(--sub);}
+
+/* trip list */
+.list-section{padding:20px 16px 120px;}
+.list-label{font-size:12px;font-weight:700;color:var(--sub);
+  letter-spacing:.5px;margin-bottom:12px;}
+.trip-item{background:var(--card);border-radius:16px;padding:14px;
+  margin-bottom:9px;display:flex;align-items:center;gap:12px;
+  border:1px solid var(--border);cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.trip-item.past{opacity:.45;}
+.trip-date-box{background:var(--accL);border-radius:12px;padding:8px 10px;
+  text-align:center;min-width:46px;}
+.trip-date-box.past{background:var(--card2);}
+.trip-day{font-size:17px;font-weight:900;color:var(--acc);line-height:1.2;}
+.trip-day.past{color:var(--sub);}
+.trip-mon{font-size:10px;color:var(--acc);font-weight:600;}
+.trip-mon.past{color:var(--sub);}
+.trip-info{flex:1;}
+.trip-name{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:3px;}
+.trip-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.trip-meta span{font-size:11px;color:var(--sub);}
+.status-badge{padding:2px 6px;border-radius:5px;font-size:10px;font-weight:600;}
+.status-badge.upcoming{background:var(--accL);color:var(--acc);}
+.status-badge.done{background:var(--card2);color:var(--sub);}
+.trip-arrow{font-size:20px;color:var(--border);}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(34px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  background:var(--acc);border-radius:28px;
+  padding:16px 30px;color:#fff;font-size:15px;font-weight:800;
+  box-shadow:0 5px 18px rgba(92,107,192,.4);z-index:50;border:none;cursor:pointer;
+  white-space:nowrap;}
+
+/* empty state */
+.empty{text-align:center;padding:50px 20px;background:var(--card);
+  border-radius:20px;border:1px solid var(--border);}
+.empty-icon{font-size:40px;margin-bottom:10px;}
+.empty p{font-size:14px;color:var(--sub);}
+
+/* ── TIMELINE VIEW ── */
+.tl-hd{background:var(--header);padding:env(safe-area-inset-top) 0 0;}
+.tl-hd-inner{padding:10px 16px 0;}
+.tl-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.back-btn{background:var(--headerSub);border-radius:12px;padding:10px 12px;
+  border:1px solid var(--headerBdr);color:var(--headerTxt);font-size:16px;}
+.tl-title-wrap{flex:1;}
+.tl-title{font-size:17px;font-weight:800;color:var(--headerTxt);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-meta{display:flex;align-items:center;gap:7px;margin-top:3px;}
+.tl-date{font-size:11px;color:var(--headerSub2);}
+.tl-dday{padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;}
+.tl-dday.upcoming{background:rgba(92,107,192,.2);color:#a5b4fc;}
+.tl-dday.past{background:rgba(255,255,255,.08);color:var(--headerSub2);}
+.del-btn{background:var(--headerSub);border-radius:12px;padding:10px 12px;
+  border:1px solid var(--headerBdr);font-size:14px;}
+
+/* tabs */
+.tabs{display:flex;background:var(--headerSub);border-radius:14px;
+  padding:4px;margin:0 0 0 0;border:1px solid var(--headerBdr);}
+.tab-btn{flex:1;padding:9px;border-radius:10px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;color:var(--headerSub2);background:none;}
+.tab-btn.active{background:var(--acc);color:#fff;}
+.tabs-wrap{padding:4px 16px 0;}
+
+/* timeline blocks */
+.tl-body{padding:16px 16px 120px;overflow-y:auto;}
+.cost-bar{background:var(--card);border-radius:14px;padding:13px 16px;
+  margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;
+  border:1px solid var(--border);}
+.cost-bar span:first-child{font-size:13px;color:var(--acc);font-weight:600;}
+.cost-bar span:last-child{font-size:17px;font-weight:900;color:var(--acc);}
+
+.block-row{display:flex;gap:12px;margin-bottom:0;}
+.block-time{width:46px;padding-top:7px;text-align:right;}
+.block-time .start{font-size:12px;font-weight:700;color:var(--txt);}
+.block-time .end{font-size:10px;color:var(--sub);margin-top:2px;}
+.block-icon-col{display:flex;flex-direction:column;align-items:center;padding-top:4px;}
+.cat-icon{width:36px;height:36px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  border-width:1.5px;border-style:solid;}
+.block-card-wrap{flex:1;margin-bottom:8px;}
+.block-card{background:var(--card);border-radius:14px;padding:13px;
+  border:1px solid var(--border);cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.block-card-header{display:flex;justify-content:space-between;align-items:flex-start;}
+.block-place{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:5px;}
+.block-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.cat-tag{padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700;}
+.block-dur,.block-cost{font-size:11px;color:var(--sub);}
+.block-memo{font-size:12px;color:var(--sub);margin-top:6px;}
+.del-block{font-size:14px;color:var(--border);padding-left:10px;background:none;border:none;cursor:pointer;}
+
+.gap-row{display:flex;gap:12px;margin:-4px 0 2px;}
+.gap-row .g1{width:46px;}
+.gap-row .g2{width:36px;text-align:center;font-size:12px;color:var(--border);}
+.gap-row .g3{flex:1;padding:3px 2px;font-size:11px;color:var(--sub);font-style:italic;}
+.overlap-row{display:flex;gap:12px;margin:-4px 0 4px;}
+.overlap-row .o1{width:46px;}
+.overlap-row .o2{width:36px;}
+.overlap-warn{flex:1;background:#FEF3C7;border-radius:8px;padding:6px 10px;
+  font-size:11px;color:#92400E;font-weight:600;}
+
+/* checklist */
+.check-summary{font-size:12px;color:var(--sub);margin-bottom:14px;}
+.check-item{background:var(--card);border-radius:13px;padding:14px;
+  margin-bottom:8px;display:flex;align-items:center;gap:13px;
+  border:1px solid var(--border);cursor:pointer;}
+.check-box{width:22px;height:22px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;border-width:2px;border-style:solid;}
+.check-box.done{background:var(--acc);border-color:var(--acc);}
+.check-box.undone{background:transparent;border-color:var(--border);}
+.check-box .tick{color:#fff;font-size:12px;font-weight:800;}
+.check-text{flex:1;font-size:14px;}
+.check-text.done{color:var(--sub);text-decoration:line-through;}
+.check-text.undone{color:var(--txt);}
+.check-del{font-size:18px;color:var(--border);background:none;border:none;cursor:pointer;}
+.quick-label{font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 11px;}
+.quick-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.quick-tag{background:var(--accL);border-radius:20px;padding:8px 14px;
+  border:1px solid rgba(92,107,192,.3);font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;}
+.check-input-row{display:flex;gap:8px;}
+.check-input{flex:1;border:1.5px solid var(--border);border-radius:12px;
+  padding:12px;font-size:14px;color:var(--txt);background:var(--card);}
+.check-add-btn{background:var(--acc);border-radius:12px;padding:0 18px;
+  color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;
+  display:flex;align-items:flex-end;justify-content:center;}
+.overlay.hidden{display:none;}
+.modal{background:var(--card);border-radius:28px 28px 0 0;
+  width:100%;max-width:500px;max-height:92vh;overflow-y:auto;
+  padding:22px 22px calc(44px + env(safe-area-inset-bottom));}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;
+  margin:0 auto 18px;}
+.modal-title{font-size:17px;font-weight:800;color:var(--txt);margin-bottom:18px;}
+.field-label{font-size:11px;color:var(--sub);margin-bottom:5px;display:block;}
+.field-label .hint{color:var(--acc);}
+.text-input{width:100%;border:1.5px solid var(--border);border-radius:11px;
+  padding:12px;font-size:14px;color:var(--txt);background:var(--bg);
+  margin-bottom:14px;outline:none;}
+.text-input:focus{border-color:var(--acc);}
+.time-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;}
+.time-field label{font-size:10px;color:var(--sub);text-align:center;display:block;margin-bottom:4px;}
+.time-field input{width:100%;border:1.5px solid var(--border);border-radius:11px;
+  padding:10px;font-size:15px;color:var(--txt);background:var(--bg);
+  text-align:center;font-weight:600;outline:none;}
+.time-field input:focus{border-color:var(--acc);}
+.dur-preview{font-size:12px;color:var(--acc);font-weight:600;text-align:center;
+  margin-bottom:14px;min-height:18px;}
+.cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;}
+.cat-btn{padding:8px 4px;border-radius:11px;border:1.5px solid var(--border);
+  background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.cat-btn.active{/* set via js */}
+.cat-btn .cicon{font-size:19px;}
+.cat-btn .clabel{font-size:9px;font-weight:700;color:var(--sub);}
+.save-btn{width:100%;background:var(--acc);border-radius:14px;padding:15px;
+  color:#fff;font-size:16px;font-weight:800;border:none;cursor:pointer;margin-top:8px;}
+.date-input{width:100%;border:1.5px solid var(--border);border-radius:11px;
+  padding:12px;font-size:14px;color:var(--txt);background:var(--bg);
+  margin-bottom:14px;outline:none;}
+.date-input:focus{border-color:var(--acc);}
+</style>
+</head>
+<body>
+
+<!-- CALENDAR VIEW -->
+<div id="calView">
+  <div class="hd">
+    <div class="hd-inner">
+      <div>
+        <div class="hd-title">🗺️ DayTrip</div>
+        <div class="hd-sub">당일 외출 플래너</div>
+      </div>
+      <button class="btn-new" onclick="openNewTrip()">＋ 새 일정</button>
+    </div>
+  </div>
+
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span id="monthLabel"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="cal-card">
+    <div class="dow-row">
+      <div class="dow-cell">일</div><div class="dow-cell">월</div>
+      <div class="dow-cell">화</div><div class="dow-cell">수</div>
+      <div class="dow-cell">목</div><div class="dow-cell">금</div>
+      <div class="dow-cell">토</div>
+    </div>
+    <div class="days-grid" id="daysGrid"></div>
+  </div>
+
+  <div id="nextCard"></div>
+
+  <div class="list-section">
+    <div class="list-label">전체 외출 목록</div>
+    <div id="tripList"></div>
+  </div>
+
+  <button class="fab" onclick="openNewTrip()">＋ 새 외출 일정</button>
+</div>
+
+<!-- TIMELINE VIEW -->
+<div id="tlView" style="display:none;height:100vh;display:none;flex-direction:column;">
+  <div class="tl-hd">
+    <div class="tl-hd-inner">
+      <div class="tl-top">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="tl-title-wrap">
+          <div class="tl-title" id="tlTitle"></div>
+          <div class="tl-meta">
+            <span class="tl-date" id="tlDate"></span>
+            <span class="tl-dday" id="tlDday"></span>
+          </div>
+        </div>
+        <button class="del-btn" onclick="deleteCurrentTrip()">🗑</button>
+      </div>
+      <div class="tabs-wrap">
+        <div class="tabs" style="margin-bottom:0;">
+          <button class="tab-btn active" id="tabTimeline" onclick="switchTab('timeline')">🗓 타임라인</button>
+          <button class="tab-btn" id="tabChecklist" onclick="switchTab('checklist')">✅ 준비물</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;" id="tlBody">
+    <div class="tl-body" id="tlContent"></div>
+  </div>
+  <button class="fab" id="tlFab" onclick="openAddBlock()">＋ 일정 추가</button>
+</div>
+
+<!-- NEW TRIP MODAL -->
+<div class="overlay hidden" id="newTripOverlay" onclick="closeNewTrip(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">새 외출 일정</div>
+    <label class="field-label">외출 제목</label>
+    <input class="text-input" id="newTripTitle" placeholder="예: 서울 병원 + 쇼핑">
+    <label class="field-label">날짜</label>
+    <input class="date-input" id="newTripDate" type="date">
+    <button class="save-btn" onclick="createTrip()">만들기</button>
+  </div>
+</div>
+
+<!-- BLOCK MODAL -->
+<div class="overlay hidden" id="blockOverlay" onclick="closeBlockModal(event)">
+  <div class="modal" id="blockModal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="blockModalTitle">일정 추가</div>
+
+    <label class="field-label">시간 <span class="hint">· 셋 중 둘만 입력하면 자동계산</span></label>
+    <div class="time-row">
+      <div class="time-field">
+        <label>시작</label>
+        <input type="time" id="bfStart" value="09:00" oninput="onStartChange()">
+      </div>
+      <div class="time-field">
+        <label>종료</label>
+        <input type="time" id="bfEnd" value="10:00" oninput="onEndChange()">
+      </div>
+      <div class="time-field">
+        <label>소요(분)</label>
+        <input type="number" id="bfDur" value="60" placeholder="60" oninput="onDurChange()">
+      </div>
+    </div>
+    <div class="dur-preview" id="durPreview">⏱ 1시간</div>
+
+    <label class="field-label">장소명</label>
+    <input class="text-input" id="bfPlace" placeholder="예: 강남세브란스병원">
+
+    <label class="field-label">카테고리</label>
+    <div class="cat-grid" id="catGrid"></div>
+
+    <label class="field-label">메모</label>
+    <input class="text-input" id="bfMemo" placeholder="예: KTX 101 / 7호차 15A">
+
+    <label class="field-label">예상 비용 (원)</label>
+    <input class="text-input" id="bfCost" type="number" placeholder="0">
+
+    <button class="save-btn" onclick="saveBlock()">저장</button>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {id:'bus',label:'버스',icon:'🚌',color:'#4CAF50'},
+  {id:'subway',label:'지하철',icon:'🚇',color:'#039BE5'},
+  {id:'train',label:'기차',icon:'🚄',color:'#8E24AA'},
+  {id:'walk',label:'도보',icon:'🚶',color:'#FB8C00'},
+  {id:'taxi',label:'택시',icon:'🚕',color:'#F9A825'},
+  {id:'car',label:'자가용',icon:'🚗',color:'#546E7A'},
+  {id:'meal',label:'식사',icon:'🍽️',color:'#E53935'},
+  {id:'cafe',label:'카페',icon:'☕',color:'#6D4C41'},
+  {id:'shopping',label:'쇼핑',icon:'🛍️',color:'#D81B60'},
+  {id:'hospital',label:'병원',icon:'🏥',color:'#00ACC1'},
+  {id:'exam',label:'시험',icon:'📝',color:'#F4511E'},
+  {id:'sightseeing',label:'관광',icon:'📸',color:'#43A047'},
+  {id:'etc',label:'기타',icon:'📌',color:'#757575'},
+];
+const CHECKLIST_TEMPLATES = ['교통카드','신분증','수험표','우산','충전기','현금','마스크'];
+
+const t2m = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+const m2t = m => {
+  const total=((m%1440)+1440)%1440;
+  return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+};
+const durStr = (s,e) => {
+  const d=t2m(e)-t2m(s); if(d<=0) return '';
+  const h=Math.floor(d/60),mn=d%60;
+  return h&&mn?`${h}시간 ${mn}분`:h?`${h}시간`:`${mn}분`;
+};
+const fmtDate = ds => {
+  const d=new Date(ds+'T00:00:00');
+  return `${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+};
+const todayStr = () => new Date().toISOString().split('T')[0];
+const isFuture = ds => ds >= todayStr();
+const dDay = ds => {
+  const diff=Math.ceil((new Date(ds+'T00:00:00')-new Date(new Date().toDateString()))/86400000);
+  return diff===0?'D-DAY':diff>0?`D-${diff}`:`D+${Math.abs(diff)}`;
+};
+const cat = id => CATEGORIES.find(c=>c.id===id)||CATEGORIES[12];
+
+// ── STATE ──────────────────────────────────────────────────────────
+let trips = JSON.parse(localStorage.getItem('daytrip_v1')||'[]');
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selTrip = null;
+let currentTab = 'timeline';
+let editBlockId = null;
+let selCatId = 'etc';
+let _ignoreStart=false,_ignoreEnd=false,_ignoreDur=false;
+
+const save = () => localStorage.setItem('daytrip_v1', JSON.stringify(trips));
+
+const sortedTrips = () => [
+  ...trips.filter(t=>isFuture(t.date)).sort((a,b)=>a.date.localeCompare(b.date)),
+  ...trips.filter(t=>!isFuture(t.date)).sort((a,b)=>b.date.localeCompare(a.date)),
+];
+
+// ── VIEWS ──────────────────────────────────────────────────────────
+function showCal() {
+  document.getElementById('calView').style.display='block';
+  document.getElementById('tlView').style.display='none';
+  renderCal();
+}
+function showTimeline(trip) {
+  selTrip=trip; currentTab='timeline';
+  document.getElementById('calView').style.display='none';
+  const tl=document.getElementById('tlView');
+  tl.style.display='flex'; tl.style.flexDirection='column';
+  renderTimeline();
+}
+function goBack(){showCal();}
+
+// ── CALENDAR ───────────────────────────────────────────────────────
+function renderCal() {
+  document.getElementById('monthLabel').textContent=`${calYear}년 ${calMonth+1}월`;
+  renderDays();
+  renderNextCard();
+  renderTripList();
+}
+function changeMonth(d){
+  calMonth+=d;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderCal();
+}
+function renderDays(){
+  const grid=document.getElementById('daysGrid');
+  grid.innerHTML='';
+  const first=new Date(calYear,calMonth,1).getDay();
+  const total=new Date(calYear,calMonth+1,0).getDate();
+  const today=todayStr();
+  const tripDates={};
+  trips.forEach(t=>{ if(!tripDates[t.date]) tripDates[t.date]=[]; tripDates[t.date].push(t); });
+
+  for(let i=0;i<first;i++){
+    const e=document.createElement('div');e.className='day-cell';grid.appendChild(e);
+  }
+  for(let d=1;d<=total;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=(first+d-1)%7;
+    const ts=tripDates[ds]||[];
+    const cell=document.createElement('div');
+    cell.className='day-cell';
+    cell.onclick=()=>goDate(ds);
+
+    let cls='day-num';
+    if(ds===today) cls+=' today';
+    if(dow===0) cls+=' sun';
+    if(dow===6) cls+=' sat';
+    if(ts.length) cls+=' has-trip';
+
+    const num=document.createElement('div');
+    num.className=cls; num.textContent=d;
+    cell.appendChild(num);
+
+    if(ts.length){
+      const dots=document.createElement('div');dots.className='dots';
+      ts.slice(0,2).forEach(t=>{
+        const dot=document.createElement('div');
+        dot.className='dot'+(isFuture(ds)?'':' past');
+        dots.appendChild(dot);
+      });
+      cell.appendChild(dots);
+    }
+    grid.appendChild(cell);
+  }
+}
+function renderNextCard(){
+  const el=document.getElementById('nextCard');
+  const next=sortedTrips().find(t=>isFuture(t.date));
+  if(!next){el.innerHTML='';return;}
+  const tc=next.blocks.reduce((s,b)=>s+(b.cost||0),0);
+  const timeStr=next.blocks.length?`🕐 ${next.blocks[0].startTime} ~ ${next.blocks[next.blocks.length-1].endTime}`:'';
+  el.innerHTML=`<div class="next-card" onclick="showTimeline(trips.find(t=>t.id==${next.id}))">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div style="flex:1;">
+        <div class="next-label">다음 외출</div>
+        <div class="next-title">${next.title}</div>
+        <div class="next-date">${fmtDate(next.date)}</div>
+      </div>
+      <div class="dday-badge"><div class="dday-text">${dDay(next.date)}</div></div>
+    </div>
+    <div class="next-meta">
+      <span>📍 ${next.blocks.length}개 장소</span>
+      ${tc>0?`<span>💰 ${tc.toLocaleString()}원</span>`:''}
+      ${timeStr?`<span>${timeStr}</span>`:''}
+    </div>
+  </div>`;
+}
+function renderTripList(){
+  const el=document.getElementById('tripList');
+  const sorted=sortedTrips();
+  if(!sorted.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🗓️</div><p>날짜를 탭해서 외출 일정을 만들어보세요</p></div>`;
+    return;
+  }
+  el.innerHTML=sorted.map(t=>{
+    const future=isFuture(t.date);
+    const tc=t.blocks.reduce((s,b)=>s+(b.cost||0),0);
+    const d=new Date(t.date+'T00:00:00');
+    return `<div class="trip-item${future?'':' past'}" onclick="showTimeline(trips.find(x=>x.id==${t.id}))">
+      <div class="trip-date-box${future?'':' past'}">
+        <div class="trip-day${future?'':' past'}">${d.getDate()}</div>
+        <div class="trip-mon${future?'':' past'}">${d.getMonth()+1}월</div>
+      </div>
+      <div class="trip-info">
+        <div class="trip-name">${t.title}</div>
+        <div class="trip-meta">
+          <span>📍 ${t.blocks.length}개</span>
+          ${tc>0?`<span>💰 ${tc.toLocaleString()}원</span>`:''}
+          <span class="status-badge ${future?'upcoming':'done'}">${future?'예정':'완료'}</span>
+        </div>
+      </div>
+      <span class="trip-arrow">›</span>
+    </div>`;
+  }).join('');
+}
+function goDate(ds){
+  const ts=trips.filter(t=>t.date===ds);
+  if(ts.length){ showTimeline(ts[0]); }
+  else{ document.getElementById('newTripDate').value=ds; openNewTrip(); }
+}
+
+// ── NEW TRIP MODAL ─────────────────────────────────────────────────
+function openNewTrip(){
+  document.getElementById('newTripOverlay').classList.remove('hidden');
+  const today=todayStr();
+  if(!document.getElementById('newTripDate').value) document.getElementById('newTripDate').value=today;
+  document.getElementById('newTripTitle').value='';
+  document.getElementById('newTripTitle').focus();
+}
+function closeNewTrip(e){
+  if(e.target===document.getElementById('newTripOverlay'))
+    document.getElementById('newTripOverlay').classList.add('hidden');
+}
+function createTrip(){
+  const title=document.getElementById('newTripTitle').value.trim();
+  const date=document.getElementById('newTripDate').value;
+  if(!title||!date) return;
+  const t={id:Date.now(),title,date,blocks:[],checklist:[]};
+  trips.push(t); save();
+  document.getElementById('newTripOverlay').classList.add('hidden');
+  showTimeline(t);
+}
+
+// ── TIMELINE ───────────────────────────────────────────────────────
+function renderTimeline(){
+  const trip=selTrip;
+  document.getElementById('tlTitle').textContent=trip.title;
+  document.getElementById('tlDate').textContent=fmtDate(trip.date);
+  const dd=document.getElementById('tlDday');
+  dd.textContent=dDay(trip.date);
+  dd.className='tl-dday '+(isFuture(trip.date)?'upcoming':'past');
+
+  document.getElementById('tabTimeline').className='tab-btn'+(currentTab==='timeline'?' active':'');
+  document.getElementById('tabChecklist').className='tab-btn'+(currentTab==='checklist'?' active':'');
+  document.getElementById('tlFab').style.display=currentTab==='timeline'?'block':'none';
+
+  const content=document.getElementById('tlContent');
+  if(currentTab==='timeline') renderBlocks(trip,content);
+  else renderChecklist(trip,content);
+}
+function switchTab(tab){currentTab=tab;renderTimeline();}
+
+function renderBlocks(trip,el){
+  const sorted=[...trip.blocks].sort((a,b)=>t2m(a.startTime)-t2m(b.startTime));
+  const tc=sorted.reduce((s,b)=>s+(b.cost||0),0);
+  let html='';
+  if(tc>0) html+=`<div class="cost-bar"><span>💰 총 예상 비용</span><span>${tc.toLocaleString()}원</span></div>`;
+  if(!sorted.length){
+    html+=`<div class="empty"><div class="empty-icon">🗓️</div><p style="font-size:15px;font-weight:600;">일정이 없어요</p><p style="margin-top:5px;opacity:.7;">아래 + 버튼으로 추가해보세요</p></div>`;
+  } else {
+    sorted.forEach((block,idx)=>{
+      const c=cat(block.categoryId);
+      const dur=durStr(block.startTime,block.endTime);
+      const next=sorted[idx+1];
+      const gapMin=next?t2m(next.startTime)-t2m(block.endTime):0;
+      html+=`<div class="block-row">
+        <div class="block-time">
+          <div class="start">${block.startTime}</div>
+          <div class="end">${block.endTime}</div>
+        </div>
+        <div class="block-icon-col">
+          <div class="cat-icon" style="background:${c.color}18;border-color:${c.color}55;">${c.icon}</div>
+        </div>
+        <div class="block-card-wrap">
+          <div class="block-card" onclick="openEditBlock('${block.id}')">
+            <div class="block-card-header">
+              <div style="flex:1;">
+                <div class="block-place">${block.place}</div>
+                <div class="block-tags">
+                  <span class="cat-tag" style="background:${c.color}18;color:${c.color};">${c.label}</span>
+                  ${dur?`<span class="block-dur">⏱ ${dur}</span>`:''}
+                  ${block.cost>0?`<span class="block-cost">💰 ${block.cost.toLocaleString()}원</span>`:''}
+                </div>
+                ${block.memo?`<div class="block-memo">📝 ${block.memo}</div>`:''}
+              </div>
+              <button class="del-block" onclick="event.stopPropagation();deleteBlock('${block.id}')">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      if(next&&gapMin>0){
+        const gs=durStr(block.endTime,next.startTime);
+        html+=`<div class="gap-row"><div class="g1"></div><div class="g2">↕</div><div class="g3">여유 ${gs}</div></div>`;
+      }
+      if(next&&gapMin<0){
+        html+=`<div class="overlap-row"><div class="o1"></div><div class="o2"></div><div class="overlap-warn">⚠️ 앞 일정과 시간이 겹쳐요</div></div>`;
+      }
+    });
+  }
+  el.innerHTML=html;
+}
+
+function renderChecklist(trip,el){
+  const done=trip.checklist.filter(c=>c.done).length;
+  const avail=CHECKLIST_TEMPLATES.filter(t=>!trip.checklist.find(c=>c.text===t));
+  let html=`<div class="check-summary">${done}/${trip.checklist.length} 완료</div>`;
+  html+=trip.checklist.map(item=>`
+    <div class="check-item" onclick="toggleCheck('${item.id}')">
+      <div class="check-box ${item.done?'done':'undone'}">${item.done?'<span class="tick">✓</span>':''}</div>
+      <span class="check-text ${item.done?'done':'undone'}">${item.text}</span>
+      <button class="check-del" onclick="event.stopPropagation();deleteCheck('${item.id}')">×</button>
+    </div>`).join('');
+  html+=`<div class="quick-label">빠른 추가</div>
+    <div class="quick-tags">${avail.map(t=>`<button class="quick-tag" onclick="addCheck('${t}')">+ ${t}</button>`).join('')}</div>
+    <div class="check-input-row">
+      <input class="check-input" id="checkInput" placeholder="직접 입력"
+        onkeydown="if(event.key==='Enter')addCheckInput()">
+      <button class="check-add-btn" onclick="addCheckInput()">추가</button>
+    </div>`;
+  el.innerHTML=html;
+}
+
+function toggleCheck(id){
+  selTrip.checklist=selTrip.checklist.map(c=>c.id==id?{...c,done:!c.done}:c);
+  syncTrip(); renderTimeline();
+}
+function deleteCheck(id){
+  selTrip.checklist=selTrip.checklist.filter(c=>c.id!=id);
+  syncTrip(); renderTimeline();
+}
+function addCheck(text){
+  if(!text.trim()) return;
+  selTrip.checklist.push({id:Date.now(),text,done:false});
+  syncTrip(); renderTimeline();
+}
+function addCheckInput(){
+  const v=document.getElementById('checkInput').value.trim();
+  addCheck(v);
+}
+
+function deleteBlock(id){
+  selTrip.blocks=selTrip.blocks.filter(b=>b.id!=id);
+  syncTrip(); renderTimeline();
+}
+function deleteCurrentTrip(){
+  if(!confirm('이 일정을 삭제할까요?')) return;
+  trips=trips.filter(t=>t.id!==selTrip.id); save(); showCal();
+}
+function syncTrip(){
+  trips=trips.map(t=>t.id===selTrip.id?selTrip:t); save();
+}
+
+// ── BLOCK MODAL ────────────────────────────────────────────────────
+function buildCatGrid(){
+  const grid=document.getElementById('catGrid');
+  grid.innerHTML=CATEGORIES.map(c=>`
+    <button class="cat-btn" id="cat_${c.id}" onclick="selectCat('${c.id}')">
+      <span class="cicon">${c.icon}</span>
+      <span class="clabel" style="color:${selCatId===c.id?c.color:'var(--sub)'}">${c.label}</span>
+    </button>`).join('');
+  updateCatGrid();
+}
+function selectCat(id){
+  selCatId=id; updateCatGrid();
+}
+function updateCatGrid(){
+  CATEGORIES.forEach(c=>{
+    const btn=document.getElementById('cat_'+c.id);
+    if(!btn) return;
+    if(c.id===selCatId){
+      btn.style.borderColor=c.color;
+      btn.style.background=c.color+'18';
+      btn.querySelector('.clabel').style.color=c.color;
+    } else {
+      btn.style.borderColor='var(--border)';
+      btn.style.background='var(--bg)';
+      btn.querySelector('.clabel').style.color='var(--sub)';
+    }
+  });
+}
+function updateDurPreview(){
+  const s=document.getElementById('bfStart').value;
+  const e=document.getElementById('bfEnd').value;
+  const d=durStr(s,e);
+  document.getElementById('durPreview').textContent=d?`⏱ ${d}`:'';
+}
+function onStartChange(){
+  if(_ignoreStart) return;
+  const s=document.getElementById('bfStart').value;
+  const dur=parseInt(document.getElementById('bfDur').value)||0;
+  if(dur>0){
+    _ignoreEnd=true;
+    document.getElementById('bfEnd').value=m2t(t2m(s)+dur);
+    _ignoreEnd=false;
+  }
+  updateDurPreview();
+}
+function onEndChange(){
+  if(_ignoreEnd) return;
+  const s=document.getElementById('bfStart').value;
+  const e=document.getElementById('bfEnd').value;
+  const dur=t2m(e)-t2m(s);
+  if(dur>0){
+    _ignoreDur=true;
+    document.getElementById('bfDur').value=dur;
+    _ignoreDur=false;
+  }
+  updateDurPreview();
+}
+function onDurChange(){
+  if(_ignoreDur) return;
+  const s=document.getElementById('bfStart').value;
+  const dur=parseInt(document.getElementById('bfDur').value)||0;
+  if(dur>0){
+    _ignoreEnd=true;
+    document.getElementById('bfEnd').value=m2t(t2m(s)+dur);
+    _ignoreEnd=false;
+  }
+  updateDurPreview();
+}
+
+function openAddBlock(){
+  editBlockId=null; selCatId='etc';
+  document.getElementById('blockModalTitle').textContent='일정 추가';
+  document.getElementById('bfStart').value='09:00';
+  document.getElementById('bfEnd').value='10:00';
+  document.getElementById('bfDur').value='60';
+  document.getElementById('bfPlace').value='';
+  document.getElementById('bfMemo').value='';
+  document.getElementById('bfCost').value='';
+  buildCatGrid(); updateDurPreview();
+  document.getElementById('blockOverlay').classList.remove('hidden');
+}
+function openEditBlock(id){
+  const block=selTrip.blocks.find(b=>b.id==id); if(!block) return;
+  editBlockId=id; selCatId=block.categoryId||'etc';
+  document.getElementById('blockModalTitle').textContent='일정 편집';
+  document.getElementById('bfStart').value=block.startTime;
+  document.getElementById('bfEnd').value=block.endTime;
+  const dur=t2m(block.endTime)-t2m(block.startTime);
+  document.getElementById('bfDur').value=dur>0?dur:0;
+  document.getElementById('bfPlace').value=block.place;
+  document.getElementById('bfMemo').value=block.memo||'';
+  document.getElementById('bfCost').value=block.cost||'';
+  buildCatGrid(); updateDurPreview();
+  document.getElementById('blockOverlay').classList.remove('hidden');
+}
+function closeBlockModal(e){
+  if(e.target===document.getElementById('blockOverlay'))
+    document.getElementById('blockOverlay').classList.add('hidden');
+}
+function saveBlock(){
+  const place=document.getElementById('bfPlace').value.trim();
+  if(!place) return;
+  const entry={
+    id: editBlockId||Date.now(),
+    startTime:document.getElementById('bfStart').value,
+    endTime:document.getElementById('bfEnd').value,
+    place,
+    categoryId:selCatId,
+    memo:document.getElementById('bfMemo').value.trim(),
+    cost:parseInt(document.getElementById('bfCost').value)||0,
+  };
+  if(editBlockId) selTrip.blocks=selTrip.blocks.map(b=>b.id==editBlockId?entry:b);
+  else selTrip.blocks.push(entry);
+  selTrip.blocks.sort((a,b)=>t2m(a.startTime)-t2m(b.startTime));
+  syncTrip();
+  document.getElementById('blockOverlay').classList.add('hidden');
+  renderTimeline();
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+showCal();
+</script>
+</body>
+</html>
