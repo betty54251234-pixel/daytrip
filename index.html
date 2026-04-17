@@ -371,7 +371,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:.4;width:20px;heig
         <div class="time-row">
           <div class="time-field"><label>시작</label><input type="time" id="bfStart" value="09:00" oninput="onStartChange()"></div>
           <div class="time-field"><label>종료</label><input type="time" id="bfEnd" value="10:00" oninput="onEndChange()"></div>
-          <div class="time-field"><label>소요</label><input type="text" id="bfDur" value="01:00" placeholder="01:00" oninput="onDurChange()" maxlength="5" inputmode="numeric"></div>
+          <div class="time-field"><label>소요 (예: 130)</label><input type="text" id="bfDur" value="100" placeholder="100" inputmode="numeric" maxlength="4" oninput="onDurChange()"></div>
         </div>
         <div class="dur-preview" id="durPreview">⏱ 1시간</div>
       </div>
@@ -809,16 +809,28 @@ function updateDurPreview(){
   const s=document.getElementById('bfStart').value,e=document.getElementById('bfEnd').value;
   const d=durStr(s,e);document.getElementById('durPreview').textContent=d?`⏱ ${d}`:'';
 }
-function onStartChange(){if(_iS)return;const s=document.getElementById('bfStart').value,dur=parseDur(document.getElementById('bfDur').value);if(dur>0){_iE=true;document.getElementById('bfEnd').value=m2t(t2m(s)+dur);_iE=false;}updateDurPreview();}
-function onEndChange(){if(_iE)return;const s=document.getElementById('bfStart').value,e=document.getElementById('bfEnd').value,dur=t2m(e)-t2m(s);if(dur>0){_iD=true;document.getElementById('bfDur').value=fmtDur(dur);_iD=false;}updateDurPreview();}
-function onDurChange(){if(_iD)return;const s=document.getElementById('bfStart').value,dur=parseDur(document.getElementById('bfDur').value);if(dur>0){_iE=true;document.getElementById('bfEnd').value=m2t(t2m(s)+dur);_iE=false;}updateDurPreview();}
+function parseDurInput(v){
+  const s=String(v).replace(/[^0-9]/g,'');
+  if(!s) return 0;
+  if(s.length<=2) return parseInt(s); // 30 → 30분
+  const m=parseInt(s.slice(-2)); // 마지막 2자리 = 분
+  const h=parseInt(s.slice(0,-2)); // 나머지 = 시간
+  return h*60+m;
+}
+function setDurField(mins){
+  const h=Math.floor(mins/60),m=mins%60;
+  document.getElementById('bfDur').value=String(h*100+m);
+}
+function onStartChange(){if(_iS)return;const s=document.getElementById('bfStart').value,dur=parseDurInput(document.getElementById('bfDur').value);if(dur>0){_iE=true;document.getElementById('bfEnd').value=m2t(t2m(s)+dur);_iE=false;}updateDurPreview();}
+function onEndChange(){if(_iE)return;const s=document.getElementById('bfStart').value,e=document.getElementById('bfEnd').value,dur=t2m(e)-t2m(s);if(dur>0){_iD=true;setDurField(dur);_iD=false;}updateDurPreview();}
+function onDurChange(){if(_iD)return;const s=document.getElementById('bfStart').value,dur=parseDurInput(document.getElementById('bfDur').value);if(dur>0){_iE=true;document.getElementById('bfEnd').value=m2t(t2m(s)+dur);_iE=false;}updateDurPreview();}
 
 function openAddBlock(){
   editBlockId=null;selCatId='etc';selBlockDay=isMultiDay(selTrip)?curDayIdx:0;
   document.getElementById('blockModalTitle').textContent='일정 추가';
   document.getElementById('bfStart').value='09:00';
   document.getElementById('bfEnd').value='10:00';
-  document.getElementById('bfDur').value='01:00';
+  document.getElementById('bfDur').value='100';
   document.getElementById('bfPlace').value='';
   document.getElementById('bfMemo').value='';
   document.getElementById('bfCost').value='';
@@ -832,7 +844,7 @@ function openEditBlock(id){
   document.getElementById('bfStart').value=block.startTime;
   document.getElementById('bfEnd').value=block.endTime;
   const dur=t2m(block.endTime)-t2m(block.startTime);
-  document.getElementById('bfDur').value=dur>0?fmtDur(dur):'00:00';
+  setDurField(dur>0?dur:0);
   document.getElementById('bfPlace').value=block.place;
   document.getElementById('bfMemo').value=block.memo||'';
   document.getElementById('bfCost').value=block.cost||'';
